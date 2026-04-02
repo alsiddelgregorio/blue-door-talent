@@ -1,0 +1,203 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required) - User ID
+    //   - email: string (required) - User email
+    //   - displayName: string (optional) - User display name
+    //   - role: string (optional) - User role (admin, user)
+    //
+    // Collection: users/{uid}/weeklyLogs
+    // Document ID: {logId}
+    // Fields:
+    //   - date: string (required, format: date) - Monday of the week
+    //   - meetings: number
+    //   - subs: number
+    //   - int1: number
+    //   - int2: number
+    //   - posts: number
+    //   - postLinks: string
+    //   - followers: number
+    //
+    // Collection: users/{uid}/placements
+    // Document ID: {placementId}
+    // Fields:
+    //   - name: string (required)
+    //   - client: string
+    //   - position: string
+    //   - revenue: number
+    //   - tier: string (enum: Tier 1, Tier 2, Tier 3)
+    //   - start: string (required, format: date)
+    //   - status: string (enum: Active, Completed)
+    //
+    // Collection: users/{uid}/jobOrders, touchpoints, jobLeads
+    // Document ID: {id}
+    // Fields:
+    //   - month: string (required)
+    //   - year: number (required)
+    //   - value: number
+    //   - goal: number
+    //   - completed: boolean
+    //
+    // Collection: users/{uid}/searchLaunches
+    // Document ID: {launchId}
+    // Fields:
+    //   - company: string (required)
+    //   - jobTitle: string (required)
+    //   - category: string
+    //   - tier: string
+    //   - status: string
+    //   - createdAt: string (required, format: date-time)
+    //   - admin, research, enrichment, outreach, scorecard: object
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "alsiddelgregorio00@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDate(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}$");
+    }
+
+    function isValidDateTime(dateTimeStr) {
+      return dateTimeStr is string && dateTimeStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'role']) &&
+             data.uid is string && data.uid.size() > 0 &&
+             data.email is string && isValidEmail(data.email) &&
+             (!('role' in data) || data.role in ['admin', 'user']);
+    }
+
+    function isValidWeeklyLog(data) {
+      return data.date is string && isValidDate(data.date) &&
+             data.meetings is number &&
+             data.subs is number &&
+             data.int1 is number &&
+             data.int2 is number &&
+             data.posts is number &&
+             data.followers is number;
+    }
+
+    function isValidPlacement(data) {
+      return data.name is string && data.name.size() > 0 &&
+             data.start is string && isValidDate(data.start) &&
+             (!('tier' in data) || data.tier in ['Tier 1', 'Tier 2', 'Tier 3']) &&
+             (!('status' in data) || data.status in ['Active', 'Completed']);
+    }
+
+    function isValidMonthlyMetric(data) {
+      return data.month is string &&
+             data.year is number &&
+             data.value is number &&
+             data.goal is number &&
+             data.completed is bool;
+    }
+
+    function isValidSearchLaunch(data) {
+      return data.company is string && data.company.size() > 0 &&
+             data.jobTitle is string && data.jobTitle.size() > 0 &&
+             data.createdAt is string && isValidDateTime(data.createdAt);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(uid) || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(uid) || isAdmin());
+
+      match /weeklyLogs/{logId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) && isValidWeeklyLog(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /placements/{placementId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) && isValidPlacement(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /jobOrders/{orderId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) && isValidMonthlyMetric(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /touchpoints/{touchId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) && isValidMonthlyMetric(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /jobLeads/{leadId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) && isValidMonthlyMetric(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /searchLaunches/{launchId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) && isValidSearchLaunch(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /booleanEntries/{entryId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+        allow delete: if isOwner(uid);
+      }
+
+      match /wirEntries/{entryId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+        allow delete: if isOwner(uid);
+      }
+
+      match /l10Ratings/{ratingId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+        allow delete: if isOwner(uid);
+      }
+
+      match /goals/annual {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+      }
+    }
+  }
+}

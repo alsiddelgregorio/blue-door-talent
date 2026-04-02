@@ -1,0 +1,176 @@
+{
+  "entities": {
+    "WeeklyLog": {
+      "title": "Weekly Activity Log",
+      "description": "Weekly activity metrics for a recruiter.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date", "description": "Monday of the week." },
+        "meetings": { "type": "number" },
+        "subs": { "type": "number", "description": "Submissions" },
+        "int1": { "type": "number", "description": "1st Interviews" },
+        "int2": { "type": "number", "description": "2nd Interviews" },
+        "posts": { "type": "number", "description": "LinkedIn Posts" },
+        "postLinks": { "type": "string" },
+        "followers": { "type": "number" }
+      },
+      "required": ["date"]
+    },
+    "Placement": {
+      "title": "Placement",
+      "description": "Details of a successful candidate placement.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "client": { "type": "string" },
+        "position": { "type": "string" },
+        "revenue": { "type": "number" },
+        "tier": { "type": "string", "enum": ["Tier 1", "Tier 2", "Tier 3"] },
+        "start": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["Active", "Completed"] }
+      },
+      "required": ["name", "start"]
+    },
+    "MonthlyMetric": {
+      "title": "Monthly Metric",
+      "description": "Generic monthly metric tracker (Job Orders, Touchpoints, Job Leads).",
+      "type": "object",
+      "properties": {
+        "month": { "type": "string" },
+        "year": { "type": "number" },
+        "value": { "type": "number" },
+        "goal": { "type": "number" },
+        "completed": { "type": "boolean" }
+      },
+      "required": ["month", "year"]
+    },
+    "SearchLaunch": {
+      "title": "Search Launch",
+      "description": "A recruitment search project with multiple phases.",
+      "type": "object",
+      "properties": {
+        "company": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "category": { "type": "string" },
+        "tier": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "admin": { "type": "object" },
+        "research": { "type": "object" },
+        "enrichment": { "type": "object" },
+        "outreach": { "type": "object" },
+        "scorecard": { "type": "object" }
+      },
+      "required": ["company", "jobTitle", "createdAt"]
+    },
+    "BooleanEntry": {
+      "title": "Boolean Keyword Entry",
+      "description": "Search strings for sourcing candidates.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "keywords": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["title", "keywords"]
+    },
+    "WirEntry": {
+      "title": "Week in Review Entry",
+      "description": "Successes or challenges for the week.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "type": { "type": "string", "enum": ["Success", "Challenge"] },
+        "content": { "type": "string" }
+      },
+      "required": ["date", "type", "content"]
+    },
+    "L10Rating": {
+      "title": "L10 Weekly Rating",
+      "description": "Rating score for an L10 meeting.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "score": { "type": "number" }
+      },
+      "required": ["date", "score"]
+    },
+    "Goal": {
+      "title": "Annual Goal",
+      "description": "Target metrics for the year.",
+      "type": "object",
+      "properties": {
+        "meetings": { "type": "number" },
+        "subs": { "type": "number" },
+        "int1": { "type": "number" },
+        "int2": { "type": "number" },
+        "place": { "type": "number" },
+        "orders": { "type": "number" },
+        "touch": { "type": "number" },
+        "leads": { "type": "number" },
+        "posts": { "type": "number" },
+        "followers": { "type": "number" },
+        "revenue": { "type": "number" }
+      }
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User specific settings and profile info.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profile documents."
+    },
+    "/users/{uid}/weeklyLogs/{logId}": {
+      "schema": "WeeklyLog",
+      "description": "Weekly activity logs for a user."
+    },
+    "/users/{uid}/placements/{placementId}": {
+      "schema": "Placement",
+      "description": "Placements for a user."
+    },
+    "/users/{uid}/jobOrders/{orderId}": {
+      "schema": "MonthlyMetric",
+      "description": "Job orders for a user."
+    },
+    "/users/{uid}/touchpoints/{touchId}": {
+      "schema": "MonthlyMetric",
+      "description": "Touchpoints for a user."
+    },
+    "/users/{uid}/jobLeads/{leadId}": {
+      "schema": "MonthlyMetric",
+      "description": "Job leads for a user."
+    },
+    "/users/{uid}/searchLaunches/{launchId}": {
+      "schema": "SearchLaunch",
+      "description": "Search launches for a user."
+    },
+    "/users/{uid}/booleanEntries/{entryId}": {
+      "schema": "BooleanEntry",
+      "description": "Boolean keyword entries for a user."
+    },
+    "/users/{uid}/wirEntries/{entryId}": {
+      "schema": "WirEntry",
+      "description": "Week in Review entries for a user."
+    },
+    "/users/{uid}/l10Ratings/{ratingId}": {
+      "schema": "L10Rating",
+      "description": "L10 ratings for a user."
+    },
+    "/users/{uid}/goals/annual": {
+      "schema": "Goal",
+      "description": "Annual goals for a user."
+    }
+  }
+}
